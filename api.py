@@ -52,10 +52,18 @@ class Tags(Resource):
                        body={"query": {
                            'match': { 'tags': tag_name }
                           }})
-        data = []
+        s3_client = boto3.client('s3',
+                    aws_access_key_id=Access_Key_ID,
+                    aws_secret_access_key=Secret_Access_Key,
+                    region_name="us-east-1")
+
+        data = {}
         for re in res['hits']['hits']:
             try:
-                data.append(re['_source']['name'])
+                # upload to s3
+                url = s3_client.generate_presigned_url(ClientMethod='get_object',
+                                            Params={ 'Bucket': "photo-uploaded", 'Key': re['_source']['name']})
+                data[re['_source']['name']] = url
             except Exception as e:
                 pass
 
@@ -75,13 +83,7 @@ class ImgTags(Resource):
                 data = re['_source']['tags']
             except Exception as e:
                 pass
-        s3_client = boto3.client('s3',
-                    aws_access_key_id=Access_Key_ID,
-                    aws_secret_access_key=Secret_Access_Key,
-                    region_name="us-east-1")
-        # upload to s3
-        url = s3_client.generate_presigned_url(ClientMethod='get_object',
-                                    Params={ 'Bucket': "photo-uploaded", 'Key': image.filename})
+
         return json.loads(json.dumps({'tags':data}))
 
 
@@ -169,4 +171,4 @@ api.add_resource(HelloWorld, '/test')
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host = '0.0.0.0', debug=True)
