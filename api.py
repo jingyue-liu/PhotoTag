@@ -7,6 +7,7 @@ import json
 from werkzeug.datastructures import FileStorage
 from cStringIO import StringIO
 from CREDENTIAL import Access_Key_ID, Secret_Access_Key
+from machine_learning import getClusters
 
 import base64
 
@@ -23,7 +24,7 @@ app.config.from_object(__name__)
 api = Api(app)
 
 ## elastic search
-host = 'search-myes-2lw4nshx535kfrodcfmvmcxqra.us-east-1.es.amazonaws.com'
+host = 'search-phototag-engmduyin6dydflby5drspxf3i.us-east-1.es.amazonaws.com'
 awsauth = AWS4Auth(Access_Key_ID, Secret_Access_Key, "us-east-1" , 'es')
 
 es = Elasticsearch(
@@ -34,15 +35,6 @@ es = Elasticsearch(
     connection_class = RequestsHttpConnection
 )
 
-
-
-## Helper Methods
-def abort_if_todo_doesnt_exist(todo_id):
-    if todo_id not in TODOS:
-        abort(404, message="Todo {} doesn't exist".format(todo_id))
-
-parser = reqparse.RequestParser()
-parser.add_argument('task')
 
 
 # Tags
@@ -72,12 +64,12 @@ class Tags(Resource):
 # get a images tags
 class ImgTags(Resource):
     def get(self, img_name):
-        print img_name
+        # print img_name
         res = es.search(index="cc-project",
                        body={"query": {"match_phrase": {
                                 "name": img_name }}})
         data = []
-        print res
+        # print res
         for re in res['hits']['hits']:
             try:
                 data = re['_source']['tags']
@@ -90,11 +82,11 @@ class ImgTags(Resource):
 # get all kinds of tags from TagList
 class TagList(Resource):
     def get(self):
-        res = es.search(index="cc-project", body={"query": {"match_all": {}}})
+        res = es.search(index="cc-project", size = 2000)
         TAGS = set()
         for re in res['hits']['hits']:
             try:
-                print re['_source']['tags']
+                # print re['_source']['tags']
                 for item in re['_source']['tags']:
                     TAGS.add(item)
             except Exception as e:
@@ -138,6 +130,13 @@ class UploadImage(Resource):
                                     Params={ 'Bucket': "photo-uploaded", 'Key': image.filename})
         return {'img_url': url}, 201
 
+class GetCluster(Resource):
+    def get(self, cluster):
+        # print cluster
+        return {'urls': getClusters(int(cluster))}, 201
+
+
+
 ## Upload encode
 class HelloWorld(Resource):
     def post(self):
@@ -166,6 +165,8 @@ api.add_resource(UploadImage, '/upload_image')
 api.add_resource(TagList, '/taglist')
 api.add_resource(ImgTags, '/image/<string:img_name>')
 api.add_resource(Tags, '/tags/<string:tag_name>')
+api.add_resource(GetCluster, '/cluster/<cluster>')
+
 
 api.add_resource(HelloWorld, '/test')
 
