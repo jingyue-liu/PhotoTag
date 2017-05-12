@@ -1,6 +1,6 @@
 # PhotoTag
 
-server url: http://ec2-54-204-77-29.compute-1.amazonaws.com
+server url: http://ec2-54-204-77-29.compute-1.amazonaws.com：5000/
 
 * POST photo
 ```
